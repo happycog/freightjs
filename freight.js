@@ -3,7 +3,7 @@
   * freight.js 1.0.0 (https://github.com/happycog/freightjs)
   * By Happy Cog (http://happycog.com)
   *
-* */
+  * */
 (function($){
 	$(function() {
 		function handler(e){
@@ -12,7 +12,8 @@
 				freightTarget = $('[data-freight-target="' + freightKey + '"]'),
 				freightEventPrefix = 'freight.' + freightKey + '.',
 				requestUrl,
-				requestMethod;
+				requestMethod,
+				requestData;
 
 			switch (freightTrigger.prop('tagName')) {
 				case 'INPUT':
@@ -24,26 +25,33 @@
 						closestMethod = freightTrigger.closest('[data-freight-method]');
 					requestUrl = (closestAction.length)?closestAction.attr('data-freight-action'):closestForm.attr('action');
 					requestMethod = (closestMethod.length)?closestMethod.attr('data-freight-method'):closestForm.attr('method');
+					requestData = closestForm.serialize();
 					break;
 
 				default:
 					requestUrl = (freightTrigger.attr('data-freight-href'))?freightTrigger.attr('data-freight-href'):freightTrigger.attr('href');
 					requestMethod = (freightTrigger.attr('data-freight-method'))?freightTrigger.attr('data-freight-method'):'get';
+					requestData = (freightTrigger.attr('data-freight-data'))?freightTrigger.attr('data-freight-data'):'';
 					break;
 			}
 
 			$.ajax({
 				url: requestUrl,
 				method: requestMethod,
-				success: function(response){
-					$(document).trigger(freightEventPrefix + 'afterResponse', response);
-
-					if (freightTarget.length) {
-						freightTarget.html(response);
-						freightTarget.trigger(freightEventPrefix + 'afterReplacement');
-					}
-				}
+				data: requestData,
+				success: responseHandler,
+				error: responseHandler
 			});
+
+			function responseHandler(response, textStatus) {
+				var afterResponse = $.Event(freightEventPrefix + 'afterResponse');
+				$(document).trigger(afterResponse, [response, textStatus]);
+
+				if (freightTarget.length && !afterResponse.isDefaultPrevented()) {
+					freightTarget.html(response);
+					freightTarget.trigger(freightEventPrefix + 'afterReplacement');
+				}
+			}
 
 			e.preventDefault();
 		}
