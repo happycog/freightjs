@@ -10,7 +10,6 @@
 			var freightTrigger = $(e.target),
 				freightKey = freightTrigger.attr('data-freight-trigger'),
 				freightTarget = $('[data-freight-target="' + freightKey + '"]'),
-				freightEventSuffix = '.' + freightKey + '.freight',
 				requestUrl,
 				requestMethod,
 				requestData;
@@ -44,10 +43,13 @@
 					success: responseHandler,
 					error: responseHandler,
 					beforeSend: function(jqXHR, settings) {
-						var beforeRequest = $.Event('beforeRequest' + freightEventSuffix);
+						var beforeRequest = $.Event('freight.beforeRequest');
 						$(document).trigger(beforeRequest, [jqXHR, settings]);
 
-						return !beforeRequest.isDefaultPrevented();
+						var beforeRequestKey = $.Event('freight.beforeRequest.' + freightKey);
+						$(document).trigger(beforeRequestKey, [jqXHR, settings]);
+
+						return !(beforeRequest.isDefaultPrevented() || beforeRequestKey.isDefaultPrevented());
 					},
 					complete: function() {
 						freightTrigger.removeAttr('data-freight-request');
@@ -56,12 +58,16 @@
 			}
 
 			function responseHandler(response, textStatus) {
-				var afterResponse = $.Event('afterResponse' + freightEventSuffix);
+				var afterResponse = $.Event('freight.afterResponse');
 				$(document).trigger(afterResponse, [response, textStatus]);
 
-				if (freightTarget.length && !afterResponse.isDefaultPrevented()) {
+				var afterResponseKey = $.Event('freight.afterResponse.' + freightKey);
+				$(document).trigger(afterResponseKey, [response, textStatus]);
+
+				if (freightTarget.length && !(afterResponse.isDefaultPrevented() || afterResponseKey.isDefaultPrevented())) {
 					freightTarget.html(response);
-					freightTarget.trigger('afterReplacement' + freightEventSuffix);
+					freightTarget.trigger('freight.afterReplacement');
+					freightTarget.trigger('freight.afterReplacement.' + freightKey);
 				}
 			}
 
