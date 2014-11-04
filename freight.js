@@ -57,7 +57,7 @@
 						var beforeRequest = $.Event(freightEventPrefix + 'beforeRequest');
 						$(document).trigger(beforeRequest, [jqXHR, settings]);
 
-						return beforeRequest.isDefaultPrevented();
+						return !beforeRequest.isDefaultPrevented();
 					},
 					complete: function() {
 						freightTrigger.removeAttr('data-freight-request');
