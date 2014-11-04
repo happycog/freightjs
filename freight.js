@@ -10,12 +10,10 @@
 			var freightTrigger = $(e.target),
 				freightKey = freightTrigger.attr('data-freight-trigger'),
 				freightTarget = $('[data-freight-target="' + freightKey + '"]'),
-				freightEventPrefix = 'freight.' + freightKey + '.',
+				freightEventSuffix = '.' + freightKey + '.freight',
 				requestUrl,
 				requestMethod,
-				requestData,
-				requestAsync,
-				requestCache;
+				requestData;
 
 			switch (freightTrigger.prop('tagName')) {
 				case 'INPUT':
@@ -24,22 +22,16 @@
 				case 'FORM':
 					var closestForm = freightTrigger.closest('form'),
 						closestAction = freightTrigger.closest('[data-freight-action]'),
-						closestMethod = freightTrigger.closest('[data-freight-method]'),
-						closestAsync = freightTrigger.closest('[data-freight-async]'),
-						closestCache = freightTrigger.closest('[data-freight-cache]');
+						closestMethod = freightTrigger.closest('[data-freight-method]');
 					requestUrl = (closestAction.length)?closestAction.attr('data-freight-action'):closestForm.attr('action');
 					requestMethod = (closestMethod.length)?closestMethod.attr('data-freight-method'):closestForm.attr('method');
 					requestData = closestForm.serialize();
-					requestAsync = (closestAsync.length)?closestAsync.attr('data-freight-async'):'true';
-					requestCache = (closestCache.length)?closestCache.attr('data-freight-cache'):'false';
 					break;
 
 				default:
 					requestUrl = (freightTrigger.attr('data-freight-href'))?freightTrigger.attr('data-freight-href'):freightTrigger.attr('href');
 					requestMethod = (freightTrigger.attr('data-freight-method'))?freightTrigger.attr('data-freight-method'):'get';
 					requestData = (freightTrigger.attr('data-freight-data'))?freightTrigger.attr('data-freight-data'):'';
-					requestAsync = (freightTrigger.attr('data-freight-async'))?freightTrigger.attr('data-freight-async'):'true';
-					requestCache = (freightTrigger.attr('data-freight-cache'))?freightTrigger.attr('data-freight-cache'):'true';
 					break;
 			}
 
@@ -49,12 +41,10 @@
 					url: requestUrl,
 					method: requestMethod,
 					data: requestData,
-					async: requestAsync,
-					cache: requestCache,
 					success: responseHandler,
 					error: responseHandler,
 					beforeSend: function(jqXHR, settings) {
-						var beforeRequest = $.Event(freightEventPrefix + 'beforeRequest');
+						var beforeRequest = $.Event('beforeRequest' + freightEventSuffix);
 						$(document).trigger(beforeRequest, [jqXHR, settings]);
 
 						return !beforeRequest.isDefaultPrevented();
@@ -66,12 +56,12 @@
 			}
 
 			function responseHandler(response, textStatus) {
-				var afterResponse = $.Event(freightEventPrefix + 'afterResponse');
+				var afterResponse = $.Event('afterResponse' + freightEventSuffix);
 				$(document).trigger(afterResponse, [response, textStatus]);
 
 				if (freightTarget.length && !afterResponse.isDefaultPrevented()) {
 					freightTarget.html(response);
-					freightTarget.trigger(freightEventPrefix + 'afterReplacement');
+					freightTarget.trigger('afterReplacement' + freightEventSuffix);
 				}
 			}
 
