@@ -13,7 +13,9 @@
 				freightEventPrefix = 'freight.' + freightKey + '.',
 				requestUrl,
 				requestMethod,
-				requestData;
+				requestData,
+				requestAsync,
+				requestCache;
 
 			switch (freightTrigger.prop('tagName')) {
 				case 'INPUT':
@@ -22,26 +24,46 @@
 				case 'FORM':
 					var closestForm = freightTrigger.closest('form'),
 						closestAction = freightTrigger.closest('[data-freight-action]'),
-						closestMethod = freightTrigger.closest('[data-freight-method]');
+						closestMethod = freightTrigger.closest('[data-freight-method]'),
+						closestAsync = freightTrigger.closest('[data-freight-async]'),
+						closestCache = freightTrigger.closest('[data-freight-cache]');
 					requestUrl = (closestAction.length)?closestAction.attr('data-freight-action'):closestForm.attr('action');
 					requestMethod = (closestMethod.length)?closestMethod.attr('data-freight-method'):closestForm.attr('method');
 					requestData = closestForm.serialize();
+					requestAsync = (closestAsync.length)?closestAsync.attr('data-freight-async'):'true';
+					requestCache = (closestCache.length)?closestCache.attr('data-freight-cache'):'false';
 					break;
 
 				default:
 					requestUrl = (freightTrigger.attr('data-freight-href'))?freightTrigger.attr('data-freight-href'):freightTrigger.attr('href');
 					requestMethod = (freightTrigger.attr('data-freight-method'))?freightTrigger.attr('data-freight-method'):'get';
 					requestData = (freightTrigger.attr('data-freight-data'))?freightTrigger.attr('data-freight-data'):'';
+					requestAsync = (freightTrigger.attr('data-freight-async'))?freightTrigger.attr('data-freight-async'):'true';
+					requestCache = (freightTrigger.attr('data-freight-cache'))?freightTrigger.attr('data-freight-cache'):'true';
 					break;
 			}
 
-			$.ajax({
-				url: requestUrl,
-				method: requestMethod,
-				data: requestData,
-				success: responseHandler,
-				error: responseHandler
-			});
+			if (freightTrigger.attr('data-freight-request') !== 'active') {
+				freightTrigger.attr('data-freight-request', 'active');
+				$.ajax({
+					url: requestUrl,
+					method: requestMethod,
+					data: requestData,
+					async: requestAsync,
+					cache: requestCache,
+					success: responseHandler,
+					error: responseHandler,
+					beforeSend: function(jqXHR, settings) {
+						var beforeRequest = $.Event(freightEventPrefix + 'beforeRequest');
+						$(document).trigger(beforeRequest, [jqXHR, settings]);
+
+						return beforeRequest.isDefaultPrevented();
+					},
+					complete: function() {
+						freightTrigger.removeAttr('data-freight-request');
+					}
+				});
+			}
 
 			function responseHandler(response, textStatus) {
 				var afterResponse = $.Event(freightEventPrefix + 'afterResponse');
